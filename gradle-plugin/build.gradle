@@ -1,0 +1,36 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'maven-publish'
+}
+
+group 'com.dpforge'
+version '0.0.1'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+gradlePlugin {
+    plugins {
+        main {
+            id = 'com.dpforge.manifestguard'
+            implementationClass = 'com.dpforge.manifestguard.ManifestGuardPlugin'
+        }
+    }
+}
+
+publishing {
+    publications {
+        pluginMaven(MavenPublication) {
+            groupId = group
+            artifactId = 'manifestguard'
+            version = version
+        }
+    }
+}
+
+dependencies {
+    implementation "com.android.tools.build:gradle:7.0.4"
+}

@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "manifest-guard"
+include ':sample'
+include ':gradle-plugin'
