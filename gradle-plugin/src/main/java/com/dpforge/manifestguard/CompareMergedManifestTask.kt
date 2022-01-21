@@ -8,43 +8,48 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.util.LinkedList
-import javax.inject.Inject
 import name.fraser.neil.plaintext.diff_match_patch as DiffMatchPatch
 
-abstract class CompareMergedManifestTask @Inject constructor(
-    private val args: Args,
-) : DefaultTask() {
+// todo @CacheableTask with test
+abstract class CompareMergedManifestTask : DefaultTask() {
 
     @get:InputFile
     abstract val mergedManifestFileIn: RegularFileProperty
 
+    @get:InputFile
+    abstract val referenceManifestFileIn: RegularFileProperty
+
     @get:OutputFile
-    abstract val mergedManifestFileOut: RegularFileProperty
-
-    private val mergedManifestFile: File
-        get() = mergedManifestFileIn.get().asFile
-
-    private val referenceManifestFile: File = args.referenceManifestFile
+    abstract val htmlDiffFileIn: RegularFileProperty
 
     @TaskAction
     fun execute() {
-        args.htmlDiffFile.delete()
+        val htmlDiffFile = htmlDiffFileIn.get().asFile
+        htmlDiffFile.delete()
 
-        logger.debug("Merged AndroidManifest.xml: $args.mergedManifestFile")
+        val referenceManifestFile = referenceManifestFileIn.get().asFile
+        val mergedManifestFile = mergedManifestFileIn.get().asFile
+
+        logger.debug("Merged AndroidManifest.xml: $mergedManifestFile")
         logger.debug("Reference AndroidManifest.xml: $referenceManifestFile")
 
-        // Just pass the manifest further
-        mergedManifestFileIn.get().asFile.copyTo(mergedManifestFileOut.get().asFile, overwrite = true)
-
-        if (!referenceManifestFile.exists()) {
+        if (referenceManifestFile.exists()) {
+            compareManifests(
+                referenceManifestFile = referenceManifestFile,
+                mergedManifestFile = mergedManifestFile,
+                htmlDiffFile = htmlDiffFile
+            )
+        } else {
             logger.info("Reference AndroidManifest.xml does not exist. Just creating it.")
             mergedManifestFile.copyTo(referenceManifestFile)
-        } else {
-            compareManifests()
         }
     }
 
-    private fun compareManifests() {
+    private fun compareManifests(
+        referenceManifestFile: File,
+        mergedManifestFile: File,
+        htmlDiffFile: File
+    ) {
         val dmp = DiffMatchPatch()
         val diffList = dmp.diff_main(
             referenceManifestFile.readText(),
@@ -54,23 +59,27 @@ abstract class CompareMergedManifestTask @Inject constructor(
             logger.info("AndroidManifests are the same")
         } else {
             logger.error("AndroidManifests are different")
-            writeHtmlReport(dmp, diffList)
+            writeHtmlReport(dmp, diffList, htmlDiffFile)
             throw GradleException(
                 "AndroidManifest.xml has changed. " +
-                        "Refer to '${args.htmlDiffFile.absolutePath}' for more details"
+                        "Refer to '${htmlDiffFile.absolutePath}' for more details"
             )
         }
     }
 
-    private fun writeHtmlReport(dmp: DiffMatchPatch, diffList: LinkedList<DiffMatchPatch.Diff>) {
+    private fun writeHtmlReport(
+        dmp: DiffMatchPatch,
+        diffList: LinkedList<DiffMatchPatch.Diff>,
+        htmlDiffFile: File
+    ) {
         dmp.diff_cleanupSemantic(diffList)
-        args.htmlDiffFile.ensureParentsExist()
+        htmlDiffFile.ensureParentsExist()
         val html = buildString {
             append("<pre>")
             append(dmp.diff_prettyHtml(diffList))
             append("</pre>")
         }
-        args.htmlDiffFile.writeText(html)
+        htmlDiffFile.writeText(html)
     }
 
     private val List<DiffMatchPatch.Diff>.hasOnlyEqual: Boolean
@@ -83,10 +92,4 @@ abstract class CompareMergedManifestTask @Inject constructor(
             }
         }
     }
-
-    class Args(
-        val referenceManifestFile: File,
-        val htmlDiffFile: File,
-    )
-
 }
