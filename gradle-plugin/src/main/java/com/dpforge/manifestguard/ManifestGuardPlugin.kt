@@ -1,10 +1,10 @@
 package com.dpforge.manifestguard
 
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppPlugin
-import com.android.build.gradle.tasks.ProcessApplicationManifest
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import java.io.File
 
 @ExperimentalStdlibApi
 class ManifestGuardPlugin : Plugin<Project> {
@@ -13,9 +13,14 @@ class ManifestGuardPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
         extension = project.extensions.create("manifestGuard", ManifestGuardExtension::class.java)
+
+        // This works
         project.afterEvaluate {
             onProjectEvaluate(it)
         }
+
+        // This doesn't work
+//        onProjectEvaluate(project)
     }
 
     private fun onProjectEvaluate(project: Project) {
@@ -29,28 +34,25 @@ class ManifestGuardPlugin : Plugin<Project> {
             )
         }
 
-        project.allprojects.forEach { p ->
-            p.afterEvaluate { onSubprojectEvaluate(p) }
+        val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
+        androidComponents.onVariants { variant ->
+            val taskProvider = project.tasks.register(
+                "compare${variant.name}MergedManifest",
+                CompareMergedManifestTask::class.java,
+                buildCompareTaskArgs(project),
+            )
+
+            variant.artifacts.use(taskProvider)
+                .wiredWithFiles(
+                    CompareMergedManifestTask::mergedManifestFileIn,
+                    CompareMergedManifestTask::mergedManifestFileOut
+                )
+                .toTransform(SingleArtifact.MERGED_MANIFEST)
         }
     }
 
-    private fun onSubprojectEvaluate(p: Project) {
-        p.tasks.withType(ProcessApplicationManifest::class.java)
-            .forEach { mergeTask ->
-                val variant = mergeTask.variantName.replaceFirstChar { it.uppercase() }
-                val mergedManifestFile = mergeTask.mergedManifest.orNull?.asFile ?: error("No File for merged manifest")
-                val storeTask = p.tasks.create(
-                    "compare${variant}MergedManifest",
-                    CompareMergedManifestTask::class.java,
-                    buildCompareTaskArgs(p, mergedManifestFile),
-                )
-                mergeTask.finalizedBy(storeTask)
-            }
-    }
-
-    private fun buildCompareTaskArgs(project: Project, mergedManifestFile: File) =
+    private fun buildCompareTaskArgs(project: Project) =
         CompareMergedManifestTask.Args(
-            mergedManifestFile = mergedManifestFile,
             referenceManifestFile = extension.referenceFile.orNull ?: Defaults.defaultReferenceManifestFile(project),
             htmlDiffFile = extension.htmlDiffFile.orNull ?: Defaults.defaultHtmlDiffFile(project)
         )
