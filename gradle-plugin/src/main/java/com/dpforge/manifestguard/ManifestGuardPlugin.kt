@@ -6,7 +6,6 @@ import com.android.build.gradle.AppPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
-@ExperimentalStdlibApi
 class ManifestGuardPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
@@ -19,15 +18,22 @@ class ManifestGuardPlugin : Plugin<Project> {
                 project.extensions.getByType(AndroidComponentsExtension::class.java)
 
             androidComponents.onVariants { variant ->
-
-                project.tasks.register(
+                val taskProvider = project.tasks.register(
                     "compare${variant.name}MergedManifest",
                     CompareMergedManifestTask::class.java,
                 ) { task ->
-                    task.mergedManifestFileIn.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
                     task.referenceManifestFileIn.set(extension.referenceFile)
                     task.htmlDiffFileIn.set(extension.htmlDiffFile)
                 }
+
+                // The task is registered as artifact transformer because it's the only way not to rely on
+                // implementation details (like merge task name or type)
+                variant.artifacts.use(taskProvider)
+                    .wiredWithFiles(
+                        CompareMergedManifestTask::mergedManifestFileIn,
+                        CompareMergedManifestTask::mergedManifestFileOut,
+                    )
+                    .toTransform(SingleArtifact.MERGED_MANIFEST)
             }
         }
     }

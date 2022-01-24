@@ -4,6 +4,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
@@ -16,7 +17,11 @@ abstract class CompareMergedManifestTask : DefaultTask() {
     @get:InputFile
     abstract val mergedManifestFileIn: RegularFileProperty
 
-    @get:InputFile
+    @get:OutputFile
+    abstract val mergedManifestFileOut: RegularFileProperty
+
+    // Use @InputFile instead of @InputFiles (https://github.com/gradle/gradle/issues/2016)
+    @get:InputFiles
     abstract val referenceManifestFileIn: RegularFileProperty
 
     @get:OutputFile
@@ -32,6 +37,9 @@ abstract class CompareMergedManifestTask : DefaultTask() {
 
         logger.debug("Merged AndroidManifest.xml: $mergedManifestFile")
         logger.debug("Reference AndroidManifest.xml: $referenceManifestFile")
+
+        // Just pass the manifest further
+        mergedManifestFileIn.get().asFile.copyTo(mergedManifestFileOut.get().asFile, overwrite = true)
 
         if (referenceManifestFile.exists()) {
             compareManifests(
