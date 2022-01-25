@@ -1,13 +1,12 @@
 package com.dpforge.manifestguard
 
-import org.gradle.testfixtures.ProjectBuilder
-import java.io.File
+import com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import java.net.URI
+import java.io.File
 
 class ManifestGuardPluginTest {
 
@@ -26,12 +25,6 @@ class ManifestGuardPluginTest {
     fun setup() {
         settingsFile = File(projectFolder, "settings.gradle")
         projectBuildFile = File(projectFolder, "build.gradle")
-
-        File(projectFolder, "local.properties").writeText(
-            """
-                sdk.dir=/Users/dpopov/Library/Android/sdk
-            """.trimIndent()
-        )
 
         File(projectFolder, "gradle.properties").writeText(
             """
@@ -52,28 +45,28 @@ class ManifestGuardPluginTest {
     @Test
     fun test() {
         withSettings {
-            """
-                rootProject.name = "test-project"
-                include ':test-app'
-            """.trimIndent()
-        }
-
-        withProjectBuildFile {
-            """
-                buildscript {
+            """                
+                pluginManagement {
+                    resolutionStrategy {
+                        eachPlugin {
+                            if (requested.id.id.startsWith("com.android.")) {
+                                useModule("com.android.tools.build:gradle:$ANDROID_GRADLE_PLUGIN_VERSION")
+                            }
+                        }
+                    }
                     repositories {
                         google()
-                        mavenCentral()
                     }
-                    dependencies {
-                        classpath "com.android.tools.build:gradle:7.0.4"
-                    }   
                 }
                 
-                allprojects {
+                rootProject.name = "test-project"
+                
+                include ':test-app'
+                
+                dependencyResolutionManagement {
                     repositories {
-                        google()
                         mavenCentral()
+                        google()
                     }
                 }
             """.trimIndent()
@@ -87,12 +80,12 @@ class ManifestGuardPluginTest {
                 }
                 
                 android {
-                    compileSdk 32
+                    compileSdk 31
                 
                     defaultConfig {
                         applicationId "com.dpforge.testapp"
                         minSdk 21
-                        targetSdk 32
+                        targetSdk 31
                         versionCode 1
                         versionName "1.0"
                     }
@@ -130,9 +123,12 @@ class ManifestGuardPluginTest {
 
     private fun withSettings(content: () -> String): Unit = settingsFile.writeText(content())
 
-    private fun withProjectBuildFile(content: () -> String): Unit = projectBuildFile.writeText(content())
+    private fun withProjectBuildFile(content: () -> String): Unit =
+        projectBuildFile.writeText(content())
 
-    private fun withTestAppBuildFile(content: () -> String): Unit = testAppBuildFile.writeText(content())
+    private fun withTestAppBuildFile(content: () -> String): Unit =
+        testAppBuildFile.writeText(content())
 
-    private fun withTestAndroidManifest(content: () -> String): Unit = testAppAndroidManifestFile.writeText(content())
+    private fun withTestAndroidManifest(content: () -> String): Unit =
+        testAppAndroidManifestFile.writeText(content())
 }
