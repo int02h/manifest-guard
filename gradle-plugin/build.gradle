@@ -36,6 +36,7 @@ dependencies {
 
     testImplementation(
             gradleTestKit(),
+            "com.android.tools:common:30.0.4"
     )
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
