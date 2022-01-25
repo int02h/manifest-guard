@@ -2,10 +2,13 @@ package com.dpforge.manifestguard
 
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.Variant
 import com.android.build.gradle.AppPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import java.util.Locale
 
+@ExperimentalStdlibApi
 class ManifestGuardPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
@@ -19,7 +22,7 @@ class ManifestGuardPlugin : Plugin<Project> {
 
             androidComponents.onVariants { variant ->
                 val taskProvider = project.tasks.register(
-                    "compare${variant.name}MergedManifest",
+                    "compare${variant.capitalizedName()}MergedManifest",
                     CompareMergedManifestTask::class.java,
                 ) { task ->
                     task.referenceManifestFileIn.set(extension.referenceFile)
@@ -37,4 +40,6 @@ class ManifestGuardPlugin : Plugin<Project> {
             }
         }
     }
+
+    private fun Variant.capitalizedName(): String = name.replaceFirstChar { it.uppercaseChar() }
 }

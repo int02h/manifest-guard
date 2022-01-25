@@ -1,5 +1,6 @@
 package com.dpforge.manifestguard
 
+import com.dpforge.manifestguard.extensions.ensureParentsExist
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.RegularFileProperty
@@ -92,12 +93,4 @@ abstract class CompareMergedManifestTask : DefaultTask() {
 
     private val List<DiffMatchPatch.Diff>.hasOnlyEqual: Boolean
         get() = all { it.operation == DiffMatchPatch.Operation.EQUAL }
-
-    private fun File.ensureParentsExist() {
-        if (!parentFile.exists()) {
-            if (!parentFile.mkdirs()) {
-                error("Failed to create dirs for file '${this}'")
-            }
-        }
-    }
 }

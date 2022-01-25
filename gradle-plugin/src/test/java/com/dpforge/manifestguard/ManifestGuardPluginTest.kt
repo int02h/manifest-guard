@@ -1,7 +1,10 @@
 package com.dpforge.manifestguard
 
-import com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -11,124 +14,113 @@ import java.io.File
 class ManifestGuardPluginTest {
 
     @TempDir
-    lateinit var projectFolder: File
+    lateinit var projectDirectory: File
 
-    private lateinit var settingsFile: File
-    private lateinit var projectBuildFile: File
+    private lateinit var generator: TestProjectGenerator
 
-    private lateinit var testAppFolder: File
-    private lateinit var testAppBuildFile: File
-    private lateinit var testAppMainSrcFolder: File
-    private lateinit var testAppAndroidManifestFile: File
+    private lateinit var defaultReferenceFile: File
+    private lateinit var defaultHtmlDiffFile: File
 
     @BeforeEach
     fun setup() {
-        settingsFile = File(projectFolder, "settings.gradle")
-        projectBuildFile = File(projectFolder, "build.gradle")
-
-        File(projectFolder, "gradle.properties").writeText(
-            """
-                android.useAndroidX=true
-            """.trimIndent()
-        )
-
-        testAppFolder = File(projectFolder, "test-app")
-        testAppFolder.mkdirs()
-
-        testAppBuildFile = File(testAppFolder, "build.gradle")
-        testAppMainSrcFolder = File(testAppFolder, "src/main")
-        testAppMainSrcFolder.mkdirs()
-        testAppAndroidManifestFile = File(testAppMainSrcFolder, "AndroidManifest.xml")
-
+        generator = TestProjectGenerator(projectDirectory)
+        defaultReferenceFile = generator.appDirectory.resolve("GuardedAndroidManifest.xml")
+        defaultHtmlDiffFile = generator.appDirectory.resolve("build/outputs/manifest_guard/diff.html")
     }
 
     @Test
-    fun test() {
-        withSettings {
-            """                
-                pluginManagement {
-                    resolutionStrategy {
-                        eachPlugin {
-                            if (requested.id.id.startsWith("com.android.")) {
-                                useModule("com.android.tools.build:gradle:$ANDROID_GRADLE_PLUGIN_VERSION")
-                            }
-                        }
-                    }
-                    repositories {
-                        google()
-                    }
-                }
-                
-                rootProject.name = "test-project"
-                
-                include ':test-app'
-                
-                dependencyResolutionManagement {
-                    repositories {
-                        mavenCentral()
-                        google()
-                    }
-                }
-            """.trimIndent()
-        }
+    fun `reference file - default path`() {
+        generator.generate()
 
-        withTestAppBuildFile {
-            """
-                plugins {
-                    id 'com.android.application'
-                    id 'com.dpforge.manifestguard'
-                }
-                
-                android {
-                    compileSdk 31
-                
-                    defaultConfig {
-                        applicationId "com.dpforge.testapp"
-                        minSdk 21
-                        targetSdk 31
-                        versionCode 1
-                        versionName "1.0"
-                    }
-                }
-                
-                dependencies {
-                    implementation 'androidx.appcompat:appcompat:1.4.1'
-                    implementation 'com.google.android.material:material:1.5.0'
-                }
-            """.trimIndent()
-        }
+        assembleTestApp()
 
-        withTestAndroidManifest {
-            """
-                <?xml version="1.0" encoding="utf-8"?>
-                <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-                    package="com.dpforge.testapp">
-                
-                    <application
-                        android:label="test-app">
-                    </application>
-                </manifest>
-            """.trimIndent()
-        }
-
-        val result = GradleRunner.create()
-            .withProjectDir(projectFolder)
-            .withPluginClasspath()
-            .withArguments(":test-app:assembleDebug")
-            .build()
-
-        println(result.output)
-        assertTrue(File(testAppFolder, "GuardedAndroidManifest.xml").exists())
+        assertTrue(defaultReferenceFile.exists())
     }
 
-    private fun withSettings(content: () -> String): Unit = settingsFile.writeText(content())
+    @Test
+    fun `reference file - custom path`() {
+        generator.generate {
+            manifestGuardExtension =
+                """
+                    manifestGuard {
+                       referenceFile = new File(projectDir, "manifest/original.xml")
+                    }
+                """.trimIndent()
+        }
 
-    private fun withProjectBuildFile(content: () -> String): Unit =
-        projectBuildFile.writeText(content())
+        assembleTestApp()
 
-    private fun withTestAppBuildFile(content: () -> String): Unit =
-        testAppBuildFile.writeText(content())
+        assertFalse(defaultReferenceFile.exists())
+        assertTrue(generator.appDirectory.resolve("manifest/original.xml").exists())
+    }
 
-    private fun withTestAndroidManifest(content: () -> String): Unit =
-        testAppAndroidManifestFile.writeText(content())
+    @Test
+    fun `compare - no changes`() {
+        generator.generate()
+        assembleTestApp() // create reference file
+
+        val result = assembleTestApp()
+
+        assertEquals(TaskOutcome.SUCCESS, result.compareDebugMergedManifestOutcome())
+        assertTrue(result.output.contains("AndroidManifests are the same"))
+        assertFalse(defaultHtmlDiffFile.exists())
+    }
+
+    @Test
+    fun `compare - has changes, default path for html report`() {
+        generator.generate()
+        assembleTestApp() // create reference file
+        modifyDefaultReferenceFile()
+
+        val result = assembleTestApp(failureExpected = true)
+
+        assertEquals(TaskOutcome.FAILED, result.compareDebugMergedManifestOutcome())
+        assertTrue(result.output.contains("AndroidManifests are different"))
+        assertTrue(defaultHtmlDiffFile.exists())
+    }
+
+    @Test
+    fun `compare - has changes, custom path for html report`() {
+        generator.generate {
+            manifestGuardExtension =
+                """
+                    manifestGuard {
+                       htmlDiffFile = new File(projectDir, "manifest-diff.html")
+                    }
+                """.trimIndent()
+        }
+        assembleTestApp() // create reference file
+        modifyDefaultReferenceFile()
+
+        val result = assembleTestApp(failureExpected = true)
+
+        assertEquals(TaskOutcome.FAILED, result.compareDebugMergedManifestOutcome())
+        assertTrue(result.output.contains("AndroidManifests are different"))
+        assertTrue(generator.appDirectory.resolve("manifest-diff.html").exists())
+    }
+
+    private fun modifyDefaultReferenceFile() {
+        with(defaultReferenceFile) {
+            writeText(
+                readText().replace("android:label=\"test-app\"", "android:label=\"changed\"")
+            )
+        }
+    }
+
+    private fun assembleTestApp(failureExpected: Boolean = false): BuildResult =
+        GradleRunner.create()
+            .withProjectDir(projectDirectory)
+            .withPluginClasspath()
+            .withArguments(":test-app:assembleDebug", "--info")
+            .run {
+                if (failureExpected) {
+                    buildAndFail()
+                } else {
+                    build()
+                }
+            }
+
+    private fun BuildResult.compareDebugMergedManifestOutcome() =
+        task(":test-app:compareDebugMergedManifest")!!.outcome
+
 }
