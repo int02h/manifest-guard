@@ -17,6 +17,7 @@ class TestProjectGenerator(
     ) {
         writeSettings()
         writeGradleProperties()
+        writeLocalProperties()
 
         val config = AppConfig()
         config.configBlock()
@@ -59,6 +60,12 @@ class TestProjectGenerator(
                 }
             """.trimIndent()
         )
+    }
+
+    private fun writeLocalProperties() {
+        val moduleDirectory = File(".").absoluteFile.parentFile
+        val rootDirectory = moduleDirectory.parentFile
+        File(rootDirectory, "local.properties").copyTo(File(projectDirectory, "local.properties"))
     }
 
     private fun writeTestApp(config: AppConfig) {
