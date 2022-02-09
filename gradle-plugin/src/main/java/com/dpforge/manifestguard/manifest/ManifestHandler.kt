@@ -26,7 +26,7 @@ internal class ManifestHandler : DefaultHandler() {
     override fun characters(ch: CharArray, start: Int, length: Int) {
         valueBuilder.setLength(0)
         valueBuilder.append(ch, start, length)
-        currentItem?.value = valueBuilder.trim().toString()
+        currentItem?.value += valueBuilder.trim().toString()
     }
 
     private fun Attributes.toMap(): Map<String, String> {

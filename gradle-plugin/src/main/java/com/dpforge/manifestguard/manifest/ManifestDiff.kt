@@ -1,6 +1,12 @@
 package com.dpforge.manifestguard.manifest
 
-class ManifestDiff(private val items: List<Entry>) : List<ManifestDiff.Entry> by items {
+import java.io.File
+
+class ManifestDiff(
+    val oldFile: File,
+    val newFile: File,
+    private val items: List<Entry>
+) : List<ManifestDiff.Entry> by items {
 
     sealed class Entry {
         class ItemAdded(val item: ManifestItem) : Entry()

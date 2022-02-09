@@ -36,10 +36,10 @@ internal class ManifestParserTest {
         )
 
         val root = parse()
-        assertNull(root.path)
-        assertEquals("root", root.requireChildByName("a").path)
-        assertEquals("root/a", root.requireChildByName("b").path)
-        assertEquals("root/a/b", root.requireChildByName("c").path)
+        assertEquals("root", root.path)
+        assertEquals("root/a", root.requireChildByName("a").path)
+        assertEquals("root/a/b", root.requireChildByName("b").path)
+        assertEquals("root/a/b/c", root.requireChildByName("c").path)
     }
 
     @Test

@@ -6,8 +6,8 @@ import com.dpforge.manifestguard.manifest.ManifestDiff.Entry
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -81,12 +81,16 @@ internal class ManifestDiffBuilderTest {
     fun `children - no changes - different attribute order`() {
         manifestFile1.writeText(
             """
-                <root aaa="1" bbb="2" ccc="3" />
+                <root>
+                    <child aaa="1" bbb="2" ccc="3" />
+                </root>
             """.trimIndent()
         )
         manifestFile2.writeText(
             """
-                <root aaa="1" ccc="3" bbb="2" />
+                <root>
+                    <child aaa="1" ccc="3" bbb="2" />
+                </root>
             """.trimIndent()
         )
         val diff = buildDiff()
@@ -97,12 +101,16 @@ internal class ManifestDiffBuilderTest {
     fun `children - changes - different attribute order`() {
         manifestFile1.writeText(
             """
-                <root aaa="1" bbb="2" ccc="3" />
+                <root>
+                    <child aaa="1" bbb="2" ccc="3" />
+                </root>
             """.trimIndent()
         )
         manifestFile2.writeText(
             """
-                <root ddd="5" aaa="1" ccc="4"  />
+                <root>
+                    <child ddd="5" aaa="1" ccc="4" />
+                </root>
             """.trimIndent()
         )
         val diff = buildDiff()
@@ -144,7 +152,6 @@ internal class ManifestDiffBuilderTest {
         assertEquals("New", entry.changedValues().first().newValue)
     }
 
-    @Disabled
     @Test
     fun `children - changes - children with the same name 2`() {
         manifestFile1.writeText(
@@ -164,8 +171,42 @@ internal class ManifestDiffBuilderTest {
             """.trimIndent()
         )
 
+        val exception = assertThrows(IllegalStateException::class.java) {
+            buildDiff()
+        }
+        assertEquals(
+            "Manifest has items that have the same name and the same set of attributes. It's unsupported case for now",
+            exception.message
+        )
+    }
+
+    @Test
+    fun `children - changes - value and child items`() {
+        manifestFile1.writeText(
+            """
+                <root>
+                    <a>Text</a>
+                </root>
+            """.trimIndent()
+        )
+        manifestFile2.writeText(
+            """
+                <root>
+                    <a>                    
+                        <b/>
+                    </a>
+                </root>
+            """.trimIndent()
+        )
+
         val diff = buildDiff()
-        assertEquals(1, diff.size)
+
+        assertEquals(2, diff.size)
+        assertEquals("b", diff.addedItems().first().item.name)
+
+        val entry = diff.changedItems().first()
+        assertEquals("Text", entry.changedValues().first().oldValue)
+        assertEquals("", entry.changedValues().first().newValue)
     }
 
     @Test
@@ -286,6 +327,9 @@ internal class ManifestDiffBuilderTest {
 
     private fun ManifestDiff.addedItems() =
         mapNotNull { it as? Entry.ItemAdded }
+
+    private fun ManifestDiff.changedItems() =
+        mapNotNull { it as? Entry.ItemChanged }
 
     private fun Entry.ItemChanged.changedValues() = changes.mapNotNull { it as? Change.ValueChanged }
 

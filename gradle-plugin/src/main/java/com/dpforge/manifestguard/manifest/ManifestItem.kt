@@ -18,7 +18,6 @@ class ManifestItem(
     var value: String = ""
         internal set
 
-    // TODO handle two or more children with the same name
     private val childrenInternal = mutableListOf<ManifestItem>()
 
     val children: List<ManifestItem>

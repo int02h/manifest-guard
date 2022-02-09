@@ -26,7 +26,11 @@ class ManifestDiffBuilder {
             }
         }
 
-        return ManifestDiff(diffEntries)
+        return ManifestDiff(
+            oldFile = file1,
+            newFile = file2,
+            items = diffEntries
+        )
     }
 
     private fun compareItemsWithSameName(item1: ManifestItem, item2: ManifestItem) {
@@ -78,6 +82,30 @@ class ManifestDiffBuilder {
             val child2 = map2[name1]
             added.remove(name1)
             if (child2 == null) {
+                child1.forEach { diffEntries += Entry.ItemRemoved(it) }
+            } else {
+                compareChildrenUnique(child1, child2)
+            }
+        }
+
+        added.forEach { name ->
+            map2.getValue(name).forEach { diffEntries += Entry.ItemAdded(it) }
+        }
+    }
+
+    private fun compareChildrenUnique(children1: List<ManifestItem>, children2: List<ManifestItem>) {
+        if (children1.size == 1 && children2.size == 1) {
+            compareItemsWithSameName(children1.first(), children2.first())
+            return
+        }
+        val map1 = buildUniqueChildMap(children1)
+        val map2 = buildUniqueChildMap(children2)
+        val added = HashSet(map2.keys)
+
+        map1.forEach { (name1, child1) ->
+            val child2 = map2[name1]
+            added.remove(name1)
+            if (child2 == null) {
                 diffEntries += Entry.ItemRemoved(child1)
             } else {
                 compareItemsWithSameName(child1, child2)
@@ -87,8 +115,25 @@ class ManifestDiffBuilder {
         added.forEach { name -> diffEntries += Entry.ItemAdded(map2.getValue(name)) }
     }
 
-    private fun buildChildMap(children: List<ManifestItem>): Map<String, ManifestItem> =
-        children.associateBy(::createChildUniqueKey)
+    private fun buildChildMap(children: List<ManifestItem>): Map<String, List<ManifestItem>> {
+        val map = mutableMapOf<String, MutableList<ManifestItem>>()
+        children.forEach { child ->
+            val list = map.getOrPut(child.name) { mutableListOf() }
+            list += child
+        }
+        return map
+    }
+
+    private fun buildUniqueChildMap(children: List<ManifestItem>): Map<String, ManifestItem> {
+        val map = children.associateBy(::createChildUniqueKey)
+        if (map.size != children.size) {
+            error(
+                "Manifest has items that have the same name and the same set of attributes. " +
+                        "It's unsupported case for now"
+            )
+        }
+        return map
+    }
 
     private fun createChildUniqueKey(item: ManifestItem): String = buildString {
         append(item.name)
