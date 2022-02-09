@@ -2,9 +2,7 @@ package com.dpforge.manifestguard.manifest
 
 import com.dpforge.manifestguard.manifest.ManifestDiff.Change
 import com.dpforge.manifestguard.manifest.ManifestDiff.Entry
-import org.xml.sax.SAXParseException
 import java.io.File
-import javax.xml.parsers.SAXParserFactory
 
 class ManifestDiffBuilder {
 
@@ -71,11 +69,13 @@ class ManifestDiffBuilder {
         }
     }
 
-    private fun compareChildren(children1: Map<String, ManifestItem>, children2: Map<String, ManifestItem>) {
-        val added = HashSet(children2.keys)
+    private fun compareChildren(children1: List<ManifestItem>, children2: List<ManifestItem>) {
+        val map1 = buildChildMap(children1)
+        val map2 = buildChildMap(children2)
+        val added = HashSet(map2.keys)
 
-        children1.forEach { (name1, child1) ->
-            val child2 = children2[name1]
+        map1.forEach { (name1, child1) ->
+            val child2 = map2[name1]
             added.remove(name1)
             if (child2 == null) {
                 diffEntries += Entry.ItemRemoved(child1)
@@ -84,7 +84,20 @@ class ManifestDiffBuilder {
             }
         }
 
-        added.forEach { name -> diffEntries += Entry.ItemAdded(children2.getValue(name)) }
+        added.forEach { name -> diffEntries += Entry.ItemAdded(map2.getValue(name)) }
+    }
+
+    private fun buildChildMap(children: List<ManifestItem>): Map<String, ManifestItem> =
+        children.associateBy(::createChildUniqueKey)
+
+    private fun createChildUniqueKey(item: ManifestItem): String = buildString {
+        append(item.name)
+        append(";")
+        item.attributes.toSortedMap().forEach { (key, value) ->
+            append(key)
+            append(":")
+            append(value)
+        }
     }
 
     private fun compareValues(entryChanges: MutableList<Change>, value1: String, value2: String) {

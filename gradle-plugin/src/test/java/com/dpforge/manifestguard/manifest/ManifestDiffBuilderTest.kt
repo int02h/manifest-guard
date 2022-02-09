@@ -7,6 +7,7 @@ import com.dpforge.manifestguard.manifest.ManifestDiff.Entry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -115,6 +116,56 @@ internal class ManifestDiffBuilderTest {
         assertEquals("4", entry.changedAttributeChanges().first().newValue)
 
         assertEquals("ddd", entry.addedAttributeChanges().first().name)
+    }
+
+    @Test
+    fun `children - changes - children with the same name`() {
+        manifestFile1.writeText(
+            """
+                <root>
+                    <a name="a1">Old</a>
+                    <a name="a2">Fixed</a>
+                </root>
+            """.trimIndent()
+        )
+        manifestFile2.writeText(
+            """
+                <root>
+                    <a name="a1">New</a>
+                    <a name="a2">Fixed</a>
+                </root>
+            """.trimIndent()
+        )
+
+        val diff = buildDiff()
+
+        val entry = assertSingleItemChange(diff)
+        assertEquals("Old", entry.changedValues().first().oldValue)
+        assertEquals("New", entry.changedValues().first().newValue)
+    }
+
+    @Disabled
+    @Test
+    fun `children - changes - children with the same name 2`() {
+        manifestFile1.writeText(
+            """
+                <root>
+                    <a name="b">Old</a>
+                    <a name="b">Fixed</a>
+                </root>
+            """.trimIndent()
+        )
+        manifestFile2.writeText(
+            """
+                <root>
+                    <a name="b">New</a>
+                    <a name="b">Fixed</a>
+                </root>
+            """.trimIndent()
+        )
+
+        val diff = buildDiff()
+        assertEquals(1, diff.size)
     }
 
     @Test

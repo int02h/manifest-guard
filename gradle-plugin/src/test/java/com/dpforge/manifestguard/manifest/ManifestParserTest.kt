@@ -77,9 +77,7 @@ internal class ManifestParserTest {
 
         val root = parse()
         assertEquals(3, root.children.size)
-        assertEquals("a", root.children["a"]?.name)
-        assertEquals("b", root.children["b"]?.name)
-        assertEquals("c", root.children["c"]?.name)
+        assertEquals(listOf("a", "b", "c"), root.children.map { it.name })
     }
 
     private fun parse(): ManifestItem {
@@ -96,15 +94,12 @@ internal class ManifestParserTest {
 
 
     private fun ManifestItem.findChildByName(name: String): ManifestItem? {
-        val child = children[name]
-        if (child != null) {
-            return child
-        }
-
-        for (item in children.values) {
+        for (item in children) {
+            if (item.name == name) {
+                return item
+            }
             return item.findChildByName(name) ?: continue
         }
-
         return null
     }
 }

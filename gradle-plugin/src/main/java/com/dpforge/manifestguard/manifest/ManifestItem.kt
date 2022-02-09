@@ -19,13 +19,13 @@ class ManifestItem(
         internal set
 
     // TODO handle two or more children with the same name
-    private val childrenInternal = mutableMapOf<String, ManifestItem>()
+    private val childrenInternal = mutableListOf<ManifestItem>()
 
-    val children: Map<String, ManifestItem>
+    val children: List<ManifestItem>
         get() = childrenInternal
 
     init {
-        parent?.childrenInternal?.put(name, this)
+        parent?.childrenInternal?.add(this)
     }
 
     override fun toString(): String = "<$name>"
