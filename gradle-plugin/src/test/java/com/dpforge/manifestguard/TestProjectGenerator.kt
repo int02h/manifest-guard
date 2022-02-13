@@ -63,9 +63,9 @@ class TestProjectGenerator(
     }
 
     private fun writeLocalProperties() {
-        val moduleDirectory = File(".").absoluteFile.parentFile
-        val rootDirectory = moduleDirectory.parentFile
-        File(rootDirectory, "local.properties").copyTo(File(projectDirectory, "local.properties"))
+        val localProperties = File(projectDirectory, "local.properties")
+        val androidHome = System.getenv("ANDROID_HOME")
+        localProperties.writeText("sdk.dir=$androidHome")
     }
 
     private fun writeTestApp(config: AppConfig) {

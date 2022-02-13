@@ -1,5 +1,6 @@
 package com.dpforge.manifestguard
 
+import com.dpforge.manifestguard.extensions.ensureDirectoryExist
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
@@ -23,6 +24,7 @@ class ManifestGuardPluginTest {
 
     @BeforeEach
     fun setup() {
+        projectDirectory.ensureDirectoryExist()
         generator = TestProjectGenerator(projectDirectory)
         defaultReferenceFile = generator.appDirectory.resolve("GuardedAndroidManifest.xml")
         defaultHtmlDiffFile = generator.appDirectory.resolve("build/outputs/manifest_guard/diff.html")
