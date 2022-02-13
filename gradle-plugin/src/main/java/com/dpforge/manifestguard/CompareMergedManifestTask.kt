@@ -1,6 +1,7 @@
 package com.dpforge.manifestguard
 
-import com.dpforge.manifestguard.extensions.ensureParentsExist
+import com.dpforge.manifestguard.manifest.ManifestDiffBuilder
+import com.dpforge.manifestguard.report.HtmlDiffWriter
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.RegularFileProperty
@@ -9,8 +10,6 @@ import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
-import java.util.LinkedList
-import name.fraser.neil.plaintext.diff_match_patch as DiffMatchPatch
 
 // todo @CacheableTask with test
 abstract class CompareMergedManifestTask : DefaultTask() {
@@ -59,38 +58,16 @@ abstract class CompareMergedManifestTask : DefaultTask() {
         mergedManifestFile: File,
         htmlDiffFile: File
     ) {
-        val dmp = DiffMatchPatch()
-        val diffList = dmp.diff_main(
-            referenceManifestFile.readText(),
-            mergedManifestFile.readText(),
-        )
-        if (diffList.hasOnlyEqual) {
+        val diff = ManifestDiffBuilder().build(referenceManifestFile, mergedManifestFile)
+        if (diff.isEmpty()) {
             logger.info("AndroidManifests are the same")
         } else {
             logger.error("AndroidManifests are different")
-            writeHtmlReport(dmp, diffList, htmlDiffFile)
+            HtmlDiffWriter(htmlDiffFile).write(diff)
             throw GradleException(
-                "AndroidManifest.xml has changed. " +
-                        "Refer to '${htmlDiffFile.absolutePath}' for more details"
+                "AndroidManifest.xml has changed. Refer to '${htmlDiffFile.absolutePath}' for more details"
             )
         }
     }
 
-    private fun writeHtmlReport(
-        dmp: DiffMatchPatch,
-        diffList: LinkedList<DiffMatchPatch.Diff>,
-        htmlDiffFile: File
-    ) {
-        dmp.diff_cleanupSemantic(diffList)
-        htmlDiffFile.ensureParentsExist()
-        val html = buildString {
-            append("<pre>")
-            append(dmp.diff_prettyHtml(diffList))
-            append("</pre>")
-        }
-        htmlDiffFile.writeText(html)
-    }
-
-    private val List<DiffMatchPatch.Diff>.hasOnlyEqual: Boolean
-        get() = all { it.operation == DiffMatchPatch.Operation.EQUAL }
 }

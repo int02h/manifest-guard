@@ -5,13 +5,12 @@ class ManifestItem(
     val parent: ManifestItem?,
     val attributes: Map<String, String>
 ) {
-    val path: String? by lazy {
+    val path: String by lazy {
         val parentPath = parent?.path
-        val parentName = parent?.name
         if (parentPath != null) {
-            "$parentPath/$parentName"
+            "$parentPath/$name"
         } else {
-            parentName
+            name
         }
     }
 
