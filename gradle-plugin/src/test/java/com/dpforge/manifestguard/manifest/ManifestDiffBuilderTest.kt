@@ -333,5 +333,5 @@ internal class ManifestDiffBuilderTest {
 
     private fun Entry.ItemChanged.changedValues() = changes.mapNotNull { it as? Change.ValueChanged }
 
-    private fun buildDiff() = ManifestDiffBuilder().build(manifestFile1, manifestFile2)
+    private fun buildDiff() = ManifestDiffBuilder(filters = emptyList()).build(manifestFile1, manifestFile2)
 }

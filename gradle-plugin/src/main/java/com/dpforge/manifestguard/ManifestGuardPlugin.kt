@@ -6,7 +6,6 @@ import com.android.build.api.variant.Variant
 import com.android.build.gradle.AppPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import java.util.Locale
 
 @ExperimentalStdlibApi
 class ManifestGuardPlugin : Plugin<Project> {
@@ -25,8 +24,9 @@ class ManifestGuardPlugin : Plugin<Project> {
                     "compare${variant.capitalizedName()}MergedManifest",
                     CompareMergedManifestTask::class.java,
                 ) { task ->
-                    task.referenceManifestFileIn.set(extension.referenceFile)
-                    task.htmlDiffFileIn.set(extension.htmlDiffFile)
+                    task.referenceManifestFile.set(extension.referenceFile)
+                    task.htmlDiffFile.set(extension.htmlDiffFile)
+                    task.ignoreConfig.set(extension.ignore)
                 }
 
                 // The task is registered as artifact transformer because it's the only way not to rely on

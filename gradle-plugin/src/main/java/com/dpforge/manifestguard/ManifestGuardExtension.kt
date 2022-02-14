@@ -1,8 +1,10 @@
 package com.dpforge.manifestguard
 
+import org.gradle.api.Action
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
+import java.io.Serializable
 import javax.inject.Inject
 
 abstract class ManifestGuardExtension @Inject constructor(
@@ -20,4 +22,15 @@ abstract class ManifestGuardExtension @Inject constructor(
             "outputs/manifest_guard/diff.html"
         )
     )
+
+    val ignore: IgnoreConfig = objects.newInstance(IgnoreConfig::class.java)
+
+    fun ignore(action: Action<IgnoreConfig>) {
+        action.execute(ignore)
+    }
+
+    open class IgnoreConfig : Serializable {
+        var ignoreAppVersionChanges: Boolean = false
+    }
+
 }
