@@ -2,6 +2,7 @@ plugins {
     id 'java-gradle-plugin'
     id 'org.jetbrains.kotlin.jvm'
     id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '0.20.0'
 }
 
 group 'com.dpforge'
@@ -17,6 +18,8 @@ gradlePlugin {
         main {
             id = 'com.dpforge.manifestguard'
             implementationClass = 'com.dpforge.manifestguard.ManifestGuardPlugin'
+            displayName = "Manifest Guard"
+            description = "Plugin for Android applications for detecting unexpected changes in AndroidManifest.xml"
         }
     }
 }
@@ -29,6 +32,12 @@ publishing {
             version = version
         }
     }
+}
+
+pluginBundle {
+    website = 'https://github.com/int02h/manifest-guard'
+    vcsUrl = 'https://github.com/int02h/manifest-guard'
+    tags = ['android', 'androidmanifest']
 }
 
 dependencies {
