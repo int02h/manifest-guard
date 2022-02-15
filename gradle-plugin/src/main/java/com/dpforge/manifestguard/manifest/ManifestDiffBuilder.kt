@@ -4,7 +4,9 @@ import com.dpforge.manifestguard.manifest.ManifestDiff.Change
 import com.dpforge.manifestguard.manifest.ManifestDiff.Entry
 import java.io.File
 
-class ManifestDiffBuilder {
+internal class ManifestDiffBuilder(
+    private val filters: List<ManifestDiffEntryFilter>,
+) {
 
     private val diffEntries = mutableListOf<Entry>()
 
@@ -29,7 +31,7 @@ class ManifestDiffBuilder {
         return ManifestDiff(
             oldFile = file1,
             newFile = file2,
-            items = diffEntries
+            items = diffEntries.filter { entry -> filters.all { it.shouldKeepEntry(entry) } }
         )
     }
 

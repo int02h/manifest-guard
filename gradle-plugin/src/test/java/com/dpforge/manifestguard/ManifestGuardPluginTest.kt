@@ -72,7 +72,7 @@ class ManifestGuardPluginTest {
     fun `compare - has changes, default path for html report`() {
         generator.generate()
         assembleTestApp() // create reference file
-        modifyDefaultReferenceFile()
+        modifyDefaultReferenceLabel()
 
         val result = assembleTestApp(failureExpected = true)
 
@@ -92,7 +92,7 @@ class ManifestGuardPluginTest {
                 """.trimIndent()
         }
         assembleTestApp() // create reference file
-        modifyDefaultReferenceFile()
+        modifyDefaultReferenceLabel()
 
         val result = assembleTestApp(failureExpected = true)
 
@@ -101,11 +101,65 @@ class ManifestGuardPluginTest {
         assertTrue(generator.appDirectory.resolve("manifest-diff.html").exists())
     }
 
-    private fun modifyDefaultReferenceFile() {
+    @Test
+    fun `compare - no changes, ignore version code and name`() {
+        generator.generate {
+            manifestGuardExtension =
+                """
+                    manifestGuard {
+                       ignore {
+                          ignoreAppVersionChanges true
+                       }
+                    }
+                """.trimIndent()
+        }
+        assembleTestApp() // create reference file
+        modifyDefaultReferenceAppVersion()
+
+        val result = assembleTestApp()
+
+        assertEquals(TaskOutcome.SUCCESS, result.compareDebugMergedManifestOutcome())
+        assertTrue(result.output.contains("AndroidManifests are the same"))
+        assertFalse(defaultHtmlDiffFile.exists())
+    }
+
+    @Test
+    fun `compare - has changes, another change besides version`() {
+        generator.generate {
+            manifestGuardExtension =
+                """
+                    manifestGuard {
+                       ignore {
+                          ignoreAppVersionChanges true
+                       }
+                    }
+                """.trimIndent()
+        }
+        assembleTestApp() // create reference file
+        modifyDefaultReferenceLabel()
+        modifyDefaultReferenceAppVersion()
+
+        val result = assembleTestApp(failureExpected = true)
+
+        assertEquals(TaskOutcome.FAILED, result.compareDebugMergedManifestOutcome())
+        assertTrue(result.output.contains("AndroidManifests are different"))
+        assertTrue(defaultHtmlDiffFile.exists())
+    }
+
+    private fun modifyDefaultReferenceLabel() {
         with(defaultReferenceFile) {
             writeText(
                 readText().replace("android:label=\"test-app\"", "android:label=\"changed\"")
             )
+        }
+    }
+
+    private fun modifyDefaultReferenceAppVersion() {
+        with(defaultReferenceFile) {
+            var text = readText()
+            text = text.replace("android:versionCode=\"1\"", "android:versionCode=\"2\"")
+            text = text.replace("android:versionName=\"1.0\"", "android:versionName=\"2.0\"")
+            writeText(text)
         }
     }
 
