@@ -13,10 +13,10 @@ ManifestGuard Gradle plugin is aimed to solve this issue for you. For every buil
 ## Setup
 ManifestGuard is applicable only to Android application modules because for libraries it does not make any sense. The setup is easy, just add the plugin to `plugins` blocks in your application's `build.gradle`:
 ```groovy
-plugins {  
-	id 'com.android.application'
-	id 'kotlin-android'
-	id 'com.dpforge.manifestguard' version 'x.x.x'
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'com.dpforge.manifestguard' version 'x.x.x'
 }
 ```
 Basically that's it. But you can configure the plugin depending on your needs. Take a look at the next section.
@@ -25,14 +25,16 @@ Basically that's it. But you can configure the plugin depending on your needs. T
 Plugin has default settings but you can change them in the following way:
 ```groovy
 manifestGuard {
-	referenceFile = new File(projectDir, "manifest/original.xml")
-	htmlDiffFile = new File(projectDir, "manifest-diff.html")
-	ignore {
-		ignoreAppVersionChanges true
-	}
+    enabled = shouldEnabledManifestGuard()
+    referenceFile = new File(projectDir, "manifest/original.xml")
+    htmlDiffFile = new File(projectDir, "manifest-diff.html")
+    ignore {
+        ignoreAppVersionChanges true
+    }
 }
 ```
 
+* `enabled` - whether plugin enabled or not. By default it's enabled;
 * `referenceFile` - path to the file which is treated like a reference `AndroidManifest.xml`. It means that this file is going to be compared with new merged manifest during next build. The default file is `GuardedAndroidManifest.xml` placed in the root of the project;
 * `htmlDiffFile` - path to the file where HTML report will be written when there are differences between two manifests;
 * `ignore` - configuration of ignore options

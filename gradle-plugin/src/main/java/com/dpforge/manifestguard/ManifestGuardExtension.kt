@@ -4,6 +4,7 @@ import org.gradle.api.Action
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.Property
 import java.io.Serializable
 import javax.inject.Inject
 
@@ -11,6 +12,9 @@ abstract class ManifestGuardExtension @Inject constructor(
     objects: ObjectFactory,
     layout: ProjectLayout
 ) {
+
+    val enabled: Property<Boolean> = objects.property(Boolean::class.java).convention(true)
+
     val referenceFile: RegularFileProperty = objects.fileProperty().convention(
         layout.projectDirectory.file(
             "GuardedAndroidManifest.xml"

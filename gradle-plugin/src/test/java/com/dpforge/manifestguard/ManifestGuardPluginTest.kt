@@ -6,6 +6,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -144,6 +145,23 @@ class ManifestGuardPluginTest {
         assertEquals(TaskOutcome.FAILED, result.compareDebugMergedManifestOutcome())
         assertTrue(result.output.contains("AndroidManifests are different"))
         assertTrue(defaultHtmlDiffFile.exists())
+    }
+
+    @Test
+    fun `compare - has changes but plugin is disabled`() {
+        generator.generate {
+            manifestGuardExtension =
+                """
+                    manifestGuard {
+                       enabled = false
+                    }
+                """.trimIndent()
+        }
+
+        val result = assembleTestApp()
+
+        assertNull(result.task(":test-app:compareDebugMergedManifest"))
+        assertFalse(defaultReferenceFile.exists())
     }
 
     private fun modifyDefaultReferenceLabel() {
