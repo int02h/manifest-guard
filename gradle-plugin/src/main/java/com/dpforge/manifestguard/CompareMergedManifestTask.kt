@@ -19,10 +19,7 @@ import java.io.File
 abstract class CompareMergedManifestTask : DefaultTask() {
 
     @get:InputFile
-    abstract val mergedManifestFileIn: RegularFileProperty
-
-    @get:OutputFile
-    abstract val mergedManifestFileOut: RegularFileProperty
+    abstract val mergedManifestFile: RegularFileProperty
 
     // Use @InputFile instead of @InputFiles (https://github.com/gradle/gradle/issues/2016)
     @get:InputFiles
@@ -40,13 +37,10 @@ abstract class CompareMergedManifestTask : DefaultTask() {
         htmlDiffFile.delete()
 
         val referenceManifestFile = referenceManifestFile.get().asFile
-        val mergedManifestFile = mergedManifestFileIn.get().asFile
+        val mergedManifestFile = mergedManifestFile.get().asFile
 
         logger.debug("Merged AndroidManifest.xml: $mergedManifestFile")
         logger.debug("Reference AndroidManifest.xml: $referenceManifestFile")
-
-        // Just pass the manifest further
-        mergedManifestFileIn.get().asFile.copyTo(mergedManifestFileOut.get().asFile, overwrite = true)
 
         if (referenceManifestFile.exists()) {
             compareManifests(

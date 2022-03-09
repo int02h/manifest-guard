@@ -21,9 +21,7 @@ class ManifestGuardPlugin : Plugin<Project> {
                 project.extensions.getByType(ApplicationAndroidComponentsExtension::class.java)
 
             androidComponents.onVariants { variant ->
-                if (extension.enabled.get()) {
-                    handleApplicationVariant(project, variant, extension)
-                }
+                handleApplicationVariant(project, variant, extension)
             }
         }
     }
@@ -33,23 +31,46 @@ class ManifestGuardPlugin : Plugin<Project> {
         variant: ApplicationVariant,
         extension: ManifestGuardExtension
     ) {
+        registerCompareTask(project, variant, extension)
+        registerUpdateReferenceTask(project, variant, extension)
+    }
+
+    private fun registerCompareTask(
+        project: Project,
+        variant: ApplicationVariant,
+        extension: ManifestGuardExtension,
+    ) {
         val taskProvider = project.tasks.register(
             "compare${variant.capitalizedName()}MergedManifest",
             CompareMergedManifestTask::class.java,
         ) { task ->
+            task.mergedManifestFile.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
             task.referenceManifestFile.set(extension.referenceFile)
             task.htmlDiffFile.set(extension.htmlDiffFile)
             task.ignoreConfig.set(extension.ignore)
         }
 
-        // The task is registered as artifact transformer because it's the only way not to rely on
-        // implementation details (like merge task name or type)
-        variant.artifacts.use(taskProvider)
-            .wiredWithFiles(
-                CompareMergedManifestTask::mergedManifestFileIn,
-                CompareMergedManifestTask::mergedManifestFileOut,
-            )
-            .toTransform(SingleArtifact.MERGED_MANIFEST)
+        if (extension.compareOnAssemble.get()) {
+            project.afterEvaluate {
+                project.tasks.named("assemble${variant.capitalizedName()}").configure {
+                    it.finalizedBy(taskProvider.get())
+                }
+            }
+        }
+    }
+
+    private fun registerUpdateReferenceTask(
+        project: Project,
+        variant: ApplicationVariant,
+        extension: ManifestGuardExtension,
+    ) {
+        project.tasks.register(
+            "update${variant.capitalizedName()}ReferenceManifest",
+            UpdateReferenceManifestTask::class.java,
+        ) { task ->
+            task.mergedManifestFile.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
+            task.referenceManifestFile.set(extension.referenceFile)
+        }
     }
 
     private fun Variant.capitalizedName(): String = name.replaceFirstChar { it.uppercaseChar() }
