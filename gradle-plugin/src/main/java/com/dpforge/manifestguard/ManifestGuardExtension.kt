@@ -13,7 +13,7 @@ abstract class ManifestGuardExtension @Inject constructor(
     layout: ProjectLayout
 ) {
 
-    val enabled: Property<Boolean> = objects.property(Boolean::class.java).convention(true)
+    val compareOnAssemble: Property<Boolean> = objects.property(Boolean::class.java).convention(true)
 
     val referenceFile: RegularFileProperty = objects.fileProperty().convention(
         layout.projectDirectory.file(

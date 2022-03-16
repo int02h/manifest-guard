@@ -25,20 +25,33 @@ Basically that's it. But you can configure the plugin depending on your needs. T
 Plugin has default settings but you can change them in the following way:
 ```groovy
 manifestGuard {
-    enabled = shouldEnabledManifestGuard()
+    compareOnAssemble = false // default value is true
     referenceFile = new File(projectDir, "manifest/original.xml")
     htmlDiffFile = new File(projectDir, "manifest-diff.html")
     ignore {
-        ignoreAppVersionChanges true
+        ignoreAppVersionChanges true // default value is false
     }
 }
 ```
 
-* `enabled` - whether plugin enabled or not. By default it's enabled;
-* `referenceFile` - path to the file which is treated like a reference `AndroidManifest.xml`. It means that this file is going to be compared with new merged manifest during next build. The default file is `GuardedAndroidManifest.xml` placed in the root of the project;
+* `compareOnAssemble` - whether manifest comparison is done automatically on every project assembly. 
+  Default value is `true` while `false` means you have to invoke task `compare${VARIANT_NAME}MergedManifest` manually. 
+  For example `compareDebugMergedManifest`. 
+* `referenceFile` - path to the file which is treated like a reference `AndroidManifest.xml`. 
+  It means that this file is going to be compared with new merged manifest during next build. The default file is 
+  `GuardedAndroidManifest.xml` placed in the root of the project;
 * `htmlDiffFile` - path to the file where HTML report will be written when there are differences between two manifests;
 * `ignore` - configuration of ignore options
-    * `ignoreAppVersionChanges` - treat as expected changes in `android:versionCode` and `android:versionName` attributes of `manifest` tag. Value of `true` means that if app version has changed then build will be succesful and no report would be generated
+    * `ignoreAppVersionChanges` - treat as expected changes in `android:versionCode` and `android:versionName` 
+      attributes of `manifest` tag. Value of `true` means that if app version has changed then manifest comparison will 
+      be successful and no report would be generated. Default value is `false`.
+      
+### Update reference manifest
+
+If there is no reference `AndroidManifest.xml` file then it will be created automatically on next comparison. When you
+introduce changes into manifest intentionally and want to update the reference then you should invoke task
+`update${VARIANT_NAME}ReferenceManifest`. For example `updateDebugReferenceManifest`. It will update reference manifest
+and the next comparison will be successful.
 
 ## Credits
 Thanks to [Dmitriy Voronin](https://github.com/dsvoronin) for the project idea and the contribution.

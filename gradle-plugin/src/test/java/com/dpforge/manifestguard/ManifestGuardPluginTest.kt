@@ -148,12 +148,12 @@ class ManifestGuardPluginTest {
     }
 
     @Test
-    fun `compare - has changes but plugin is disabled`() {
+    fun `compare - has changes but compareOnAssemble is false`() {
         generator.generate {
             manifestGuardExtension =
                 """
                     manifestGuard {
-                       enabled = false
+                       compareOnAssemble = false
                     }
                 """.trimIndent()
         }
@@ -162,6 +162,43 @@ class ManifestGuardPluginTest {
 
         assertNull(result.task(":test-app:compareDebugMergedManifest"))
         assertFalse(defaultReferenceFile.exists())
+    }
+
+    @Test
+    fun `update - non existing reference`() {
+        generator.generate()
+
+        val result = updateReferenceManifest()
+
+        assertEquals(TaskOutcome.SUCCESS, result.updateDebugReferenceManifestOutcome())
+        assertTrue(defaultReferenceFile.exists())
+    }
+
+    @Test
+    fun `update - existing reference`() {
+        generator.generate()
+
+        assembleTestApp() // create reference file
+        modifyDefaultReferenceLabel()
+
+        val result = updateReferenceManifest()
+
+        assertEquals(TaskOutcome.SUCCESS, result.updateDebugReferenceManifestOutcome())
+        assertTrue(defaultReferenceFile.exists())
+
+        val referenceManifestContent = defaultReferenceFile.readText()
+        assertTrue(referenceManifestContent.contains("android:label=\"test-app\""))
+        assertFalse(referenceManifestContent.contains("android:label=\"changed\""))
+    }
+
+    @Test
+    fun `update - compare is not called`() {
+        generator.generate()
+
+        val result = updateReferenceManifest()
+
+        assertEquals(TaskOutcome.SUCCESS, result.updateDebugReferenceManifestOutcome())
+        assertNull(result.task(":test-app:compareDebugMergedManifest"))
     }
 
     private fun modifyDefaultReferenceLabel() {
@@ -194,7 +231,17 @@ class ManifestGuardPluginTest {
                 }
             }
 
+    private fun updateReferenceManifest(): BuildResult =
+        GradleRunner.create()
+            .withProjectDir(projectDirectory)
+            .withPluginClasspath()
+            .withArguments(":test-app:updateDebugReferenceManifest", "--info")
+            .build()
+
     private fun BuildResult.compareDebugMergedManifestOutcome() =
         task(":test-app:compareDebugMergedManifest")!!.outcome
+
+    private fun BuildResult.updateDebugReferenceManifestOutcome() =
+        task(":test-app:updateDebugReferenceManifest")!!.outcome
 
 }
