@@ -14,10 +14,23 @@ ManifestGuard Gradle plugin is aimed to solve this issue for you. For every buil
 ManifestGuard is applicable only to Android application modules because for libraries it does not make any sense. The setup is easy, just add the plugin to `plugins` blocks in your application's `build.gradle`:
 ```groovy
 plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
     id 'com.dpforge.manifestguard' version 'x.x.x'
 }
+```
+or legacy plugin application:
+```groovy
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    
+    dependencies {
+        classpath "com.dpforge:manifestguard:0.0.2"
+    }
+}
+
+apply plugin: "com.dpforge.manifestguard"
 ```
 Basically that's it. But you can configure the plugin depending on your needs. Take a look at the next section.
 
