@@ -2,16 +2,13 @@ package com.dpforge.manifestguard.manifest
 
 import com.dpforge.manifestguard.manifest.ManifestDiff.Change
 import com.dpforge.manifestguard.manifest.ManifestDiff.Entry
-
-
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
-
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import kotlin.test.assertIs
 
 internal class ManifestDiffBuilderTest {
 
@@ -127,7 +124,7 @@ internal class ManifestDiffBuilderTest {
     }
 
     @Test
-    fun `children - changes - children with the same name`() {
+    fun `children - changes - same name but different attributes`() {
         manifestFile1.writeText(
             """
                 <root>
@@ -153,7 +150,7 @@ internal class ManifestDiffBuilderTest {
     }
 
     @Test
-    fun `children - changes - children with the same name 2`() {
+    fun `children - changes - same name and same attributes`() {
         manifestFile1.writeText(
             """
                 <root>
@@ -171,13 +168,69 @@ internal class ManifestDiffBuilderTest {
             """.trimIndent()
         )
 
-        val exception = assertThrows(IllegalStateException::class.java) {
-            buildDiff()
-        }
-        assertEquals(
-            "Manifest has items that have the same name and the same set of attributes. It's unsupported case for now",
-            exception.message
+        val diff = buildDiff()
+
+        val entry = assertSingleItemChange(diff)
+        assertEquals("Old", entry.changedValues().first().oldValue)
+        assertEquals("New", entry.changedValues().first().newValue)
+    }
+
+    @Test
+    fun `children - changes - same name and no attributes`() {
+        manifestFile1.writeText(
+            """
+                <root>
+                    <a>Old</a>
+                    <a>Fixed</a>
+                </root>
+            """.trimIndent()
         )
+        manifestFile2.writeText(
+            """
+                <root>
+                    <a>New</a>
+                    <a>Fixed</a>
+                </root>
+            """.trimIndent()
+        )
+
+        val diff = buildDiff()
+
+        val entry = assertSingleItemChange(diff)
+        assertEquals("Old", entry.changedValues().first().oldValue)
+        assertEquals("New", entry.changedValues().first().newValue)
+    }
+
+    @Test
+    fun `children - changes - same tags but different order`() {
+        manifestFile1.writeText(
+            """
+                <root>
+                    <a name="b">Value1</a>
+                    <a name="b">Value2</a>
+                </root>
+            """.trimIndent()
+        )
+        manifestFile2.writeText(
+            """
+                <root>
+                    <a name="b">Value2</a>
+                    <a name="b">Value1</a>
+                </root>
+            """.trimIndent()
+        )
+
+        val diff = buildDiff()
+
+        assertEquals(2, diff.size)
+        with(assertIs<Entry.ItemChanged>(diff[0])) {
+            assertEquals("Value1", changedValues().first().oldValue)
+            assertEquals("Value2", changedValues().first().newValue)
+        }
+        with(assertIs<Entry.ItemChanged>(diff[1])) {
+            assertEquals("Value2", changedValues().first().oldValue)
+            assertEquals("Value1", changedValues().first().newValue)
+        }
     }
 
     @Test

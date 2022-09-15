@@ -127,20 +127,23 @@ internal class ManifestDiffBuilder(
     }
 
     private fun buildUniqueChildMap(children: List<ManifestItem>): Map<String, ManifestItem> {
-        val map = children.associateBy(::createChildUniqueKey)
-        if (map.size != children.size) {
-            error(
-                "Manifest has items that have the same name and the same set of attributes. " +
-                        "It's unsupported case for now"
-            )
+        val map = mutableMapOf<String, ManifestItem>()
+        val duplicateKeyCount = mutableMapOf<String, Int>()
+        children.forEachIndexed { index, manifestItem ->
+            var key = createChildUniqueKey(manifestItem)
+            if (map.contains(key)) {
+                val count = duplicateKeyCount.getOrDefault(key, 0)
+                key = "$key;$count"
+            }
+            map.put(key, manifestItem)?.let { error("Unexpected problem with item ${manifestItem.path}") }
         }
         return map
     }
 
     private fun createChildUniqueKey(item: ManifestItem): String = buildString {
         append(item.name)
-        append(";")
         item.attributes.toSortedMap().forEach { (key, value) ->
+            append(";")
             append(key)
             append(":")
             append(value)

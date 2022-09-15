@@ -22,6 +22,7 @@ class ManifestGuardPluginTest {
 
     private lateinit var defaultReferenceFile: File
     private lateinit var defaultHtmlDiffFile: File
+    private lateinit var manifestFile: File
 
     @BeforeEach
     fun setup() {
@@ -29,6 +30,7 @@ class ManifestGuardPluginTest {
         generator = TestProjectGenerator(projectDirectory)
         defaultReferenceFile = generator.appDirectory.resolve("GuardedAndroidManifest.xml")
         defaultHtmlDiffFile = generator.appDirectory.resolve("build/outputs/manifest_guard/diff.html")
+        manifestFile = generator.appManifestFile
     }
 
     @Test
@@ -73,7 +75,7 @@ class ManifestGuardPluginTest {
     fun `compare - has changes, default path for html report`() {
         generator.generate()
         assembleTestApp() // create reference file
-        modifyDefaultReferenceLabel()
+        modifyManifestLabel()
 
         val result = assembleTestApp(failureExpected = true)
 
@@ -93,7 +95,7 @@ class ManifestGuardPluginTest {
                 """.trimIndent()
         }
         assembleTestApp() // create reference file
-        modifyDefaultReferenceLabel()
+        modifyManifestLabel()
 
         val result = assembleTestApp(failureExpected = true)
 
@@ -115,7 +117,7 @@ class ManifestGuardPluginTest {
                 """.trimIndent()
         }
         assembleTestApp() // create reference file
-        modifyDefaultReferenceAppVersion()
+        modifyManifestAppVersion()
 
         val result = assembleTestApp()
 
@@ -137,8 +139,8 @@ class ManifestGuardPluginTest {
                 """.trimIndent()
         }
         assembleTestApp() // create reference file
-        modifyDefaultReferenceLabel()
-        modifyDefaultReferenceAppVersion()
+        modifyManifestLabel()
+        modifyManifestAppVersion()
 
         val result = assembleTestApp(failureExpected = true)
 
@@ -165,6 +167,38 @@ class ManifestGuardPluginTest {
     }
 
     @Test
+    fun `compare - no changes in tags without attributes`() {
+        generator.generate {
+            manifestApplicationContent = """
+                <activity android:name=".MainActivity" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.SEND"/>
+                        <category android:name="android.intent.category.DEFAULT"/>
+                        <data android:mimeType="text/plain"/>
+                    </intent-filter>
+                    
+                    <intent-filter>
+                        <action android:name="android.intent.action.VIEW"/>
+                        <category android:name="android.intent.category.DEFAULT"/>
+                        <data android:mimeType="image/*"/>
+                    </intent-filter>
+                </activity>
+                """.trimIndent()
+        }
+        assembleTestApp() // create reference file
+
+        modifyManifest { content ->
+            content.replace("android.intent.action.SEND", "android.intent.action.SEND_MULTIPLE")
+        }
+
+        val result = assembleTestApp(failureExpected = true)
+
+        assertEquals(TaskOutcome.FAILED, result.compareDebugMergedManifestOutcome())
+        assertTrue(result.output.contains("AndroidManifests are different"))
+        assertTrue(defaultHtmlDiffFile.exists())
+    }
+
+    @Test
     fun `update - non existing reference`() {
         generator.generate()
 
@@ -179,7 +213,7 @@ class ManifestGuardPluginTest {
         generator.generate()
 
         assembleTestApp() // create reference file
-        modifyDefaultReferenceLabel()
+        modifyManifestLabel()
 
         val result = updateReferenceManifest()
 
@@ -187,8 +221,8 @@ class ManifestGuardPluginTest {
         assertTrue(defaultReferenceFile.exists())
 
         val referenceManifestContent = defaultReferenceFile.readText()
-        assertTrue(referenceManifestContent.contains("android:label=\"test-app\""))
-        assertFalse(referenceManifestContent.contains("android:label=\"changed\""))
+        assertFalse(referenceManifestContent.contains("android:label=\"test-app\""))
+        assertTrue(referenceManifestContent.contains("android:label=\"changed\""))
     }
 
     @Test
@@ -201,20 +235,20 @@ class ManifestGuardPluginTest {
         assertNull(result.task(":test-app:compareDebugMergedManifest"))
     }
 
-    private fun modifyDefaultReferenceLabel() {
-        with(defaultReferenceFile) {
-            writeText(
-                readText().replace("android:label=\"test-app\"", "android:label=\"changed\"")
-            )
+    private fun modifyManifest(modificationBlock: (String) -> String) {
+        with(manifestFile) { writeText(modificationBlock(readText())) }
+    }
+
+    private fun modifyManifestLabel() {
+        modifyManifest { content ->
+            content.replace("android:label=\"test-app\"", "android:label=\"changed\"")
         }
     }
 
-    private fun modifyDefaultReferenceAppVersion() {
-        with(defaultReferenceFile) {
-            var text = readText()
-            text = text.replace("android:versionCode=\"1\"", "android:versionCode=\"2\"")
-            text = text.replace("android:versionName=\"1.0\"", "android:versionName=\"2.0\"")
-            writeText(text)
+    private fun modifyManifestAppVersion() {
+        modifyManifest { content ->
+            content.replace("android:versionCode=\"1\"", "android:versionCode=\"2\"")
+                .replace("android:versionName=\"1.0\"", "android:versionName=\"2.0\"")
         }
     }
 

@@ -73,7 +73,7 @@ class TestProjectGenerator(
         writeAppBuildScript(config)
 
         appMainSrcDirectory.ensureDirectoryExist()
-        writeAppManifest()
+        writeAppManifest(config)
     }
 
     private fun writeAppBuildScript(config: AppConfig) {
@@ -101,7 +101,7 @@ class TestProjectGenerator(
         )
     }
 
-    private fun writeAppManifest() {
+    private fun writeAppManifest(config: AppConfig) {
         appManifestFile.writeText(
             """
                 <?xml version="1.0" encoding="utf-8"?>
@@ -110,13 +110,15 @@ class TestProjectGenerator(
                 
                     <application
                         android:label="test-app">
+                        ${config.manifestApplicationContent}
                     </application>
                 </manifest>
-            """.trimIndent()
+            """.trimIndent().trimStart()
         )
     }
 
     class AppConfig {
         var manifestGuardExtension: String = ""
+        var manifestApplicationContent: String = ""
     }
 }
