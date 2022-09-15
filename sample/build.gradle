@@ -1,7 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'com.dpforge.manifestguard' version '0.0.2'
+    id 'com.dpforge.manifestguard' version '0.0.3'
 }
 
 android {
