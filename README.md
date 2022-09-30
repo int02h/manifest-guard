@@ -26,7 +26,7 @@ buildscript {
         }
     
     dependencies {
-        classpath "com.dpforge:manifestguard:0.0.2"
+        classpath "com.dpforge:manifestguard:x.x.x"
     }
 }
 
