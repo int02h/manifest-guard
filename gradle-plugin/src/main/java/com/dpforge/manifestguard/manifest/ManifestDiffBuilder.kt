@@ -129,10 +129,11 @@ internal class ManifestDiffBuilder(
     private fun buildUniqueChildMap(children: List<ManifestItem>): Map<String, ManifestItem> {
         val map = mutableMapOf<String, ManifestItem>()
         val duplicateKeyCount = mutableMapOf<String, Int>()
-        children.forEachIndexed { index, manifestItem ->
+        children.forEach { manifestItem ->
             var key = createChildUniqueKey(manifestItem)
             if (map.contains(key)) {
                 val count = duplicateKeyCount.getOrDefault(key, 0)
+                duplicateKeyCount[key] = count + 1
                 key = "$key;$count"
             }
             map.put(key, manifestItem)?.let { error("Unexpected problem with item ${manifestItem.path}") }

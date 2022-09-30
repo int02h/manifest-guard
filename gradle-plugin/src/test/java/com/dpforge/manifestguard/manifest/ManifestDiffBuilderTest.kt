@@ -202,6 +202,32 @@ internal class ManifestDiffBuilderTest {
     }
 
     @Test
+    fun `children - no changes - more than two same-name tags without attributes`() {
+        manifestFile1.writeText(
+            """
+                <root>
+                    <a>value1</a>
+                    <a>value2</a>
+                    <a>value3</a>
+                </root>
+            """.trimIndent()
+        )
+        manifestFile2.writeText(
+            """
+                <root>
+                    <a>value1</a>
+                    <a>value2</a>
+                    <a>value3</a>
+                </root>
+            """.trimIndent()
+        )
+
+        val diff = buildDiff()
+
+        assertTrue(diff.isEmpty())
+    }
+
+    @Test
     fun `children - changes - same tags but different order`() {
         manifestFile1.writeText(
             """
