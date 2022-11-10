@@ -48,7 +48,9 @@ class ManifestGuardPluginTest {
             manifestGuardExtension =
                 """
                     manifestGuard {
-                       referenceFile = new File(projectDir, "manifest/original.xml")
+                        guardVariant("debug") {
+                            referenceFile = new File(projectDir, "manifest/original.xml")     
+                        }
                     }
                 """.trimIndent()
         }
@@ -67,8 +69,8 @@ class ManifestGuardPluginTest {
         val result = assembleTestApp()
 
         assertEquals(TaskOutcome.SUCCESS, result.compareDebugMergedManifestOutcome())
-        assertTrue(result.output.contains("AndroidManifests are the same"))
         assertFalse(defaultHtmlDiffFile.exists())
+        assertTrue(result.output.contains("AndroidManifests are the same"))
     }
 
     @Test
@@ -90,7 +92,9 @@ class ManifestGuardPluginTest {
             manifestGuardExtension =
                 """
                     manifestGuard {
-                       htmlDiffFile = new File(projectDir, "manifest-diff.html")
+                        guardVariant("debug") {
+                            htmlDiffFile = new File(projectDir, "manifest-diff.html")     
+                        }
                     }
                 """.trimIndent()
         }
@@ -110,9 +114,11 @@ class ManifestGuardPluginTest {
             manifestGuardExtension =
                 """
                     manifestGuard {
-                       ignore {
-                          ignoreAppVersionChanges true
-                       }
+                        guardVariant("debug") {
+                            ignore {
+                                ignoreAppVersionChanges = true       
+                            }
+                        }
                     }
                 """.trimIndent()
         }
@@ -132,9 +138,11 @@ class ManifestGuardPluginTest {
             manifestGuardExtension =
                 """
                     manifestGuard {
-                       ignore {
-                          ignoreAppVersionChanges true
-                       }
+                        guardVariant("debug") {
+                            ignore {
+                                ignoreAppVersionChanges = true       
+                            }
+                        }
                     }
                 """.trimIndent()
         }
@@ -155,7 +163,9 @@ class ManifestGuardPluginTest {
             manifestGuardExtension =
                 """
                     manifestGuard {
-                       compareOnAssemble = false
+                        guardVariant("debug") {
+                            compareOnAssemble = false
+                        }
                     }
                 """.trimIndent()
         }
@@ -235,6 +245,59 @@ class ManifestGuardPluginTest {
         assertNull(result.task(":test-app:compareDebugMergedManifest"))
     }
 
+    @Test
+    fun `configuration - default config enabled=false`() {
+        generator.generate {
+            manifestGuardExtension = """
+                |manifestGuard {
+                |        defaultConfig {
+                |           enabled = false
+                |        }
+                |    }
+            """.trimMargin()
+        }
+
+        val result = tasks()
+
+        assertFalse(result.output.contains("compareDebugMergedManifest"))
+        assertFalse(result.output.contains("compareReleaseMergedManifest"))
+        assertFalse(result.output.contains("updateDebugReferenceManifest"))
+        assertFalse(result.output.contains("updateReleaseReferenceManifest"))
+    }
+
+    @Test
+    fun `configuration - no build variants in the extension`() {
+        generator.generate()
+
+        val result = tasks()
+
+        assertTrue(result.output.contains("compareDebugMergedManifest"))
+        assertTrue(result.output.contains("compareReleaseMergedManifest"))
+        assertTrue(result.output.contains("updateDebugReferenceManifest"))
+        assertTrue(result.output.contains("updateReleaseReferenceManifest"))
+    }
+
+    @Test
+    fun `configuration - only debug build variant enabled`() {
+        generator.generate {
+            manifestGuardExtension = """
+                |manifestGuard {
+                |        defaultConfig {
+                |           enabled = false
+                |        }
+                |        guardVariant("debug") {
+                |           enabled = true
+                |        }
+                |    }
+            """.trimMargin()
+        }
+
+        val result = tasks()
+
+        assertTrue(result.output.contains("compareDebugMergedManifest"))
+        assertFalse(result.output.contains("compareReleaseMergedManifest"))
+    }
+
     private fun modifyManifest(modificationBlock: (String) -> String) {
         with(manifestFile) { writeText(modificationBlock(readText())) }
     }
@@ -264,6 +327,13 @@ class ManifestGuardPluginTest {
                     build()
                 }
             }
+
+    private fun tasks(): BuildResult =
+        GradleRunner.create()
+            .withProjectDir(projectDirectory)
+            .withPluginClasspath()
+            .withArguments(":test-app:tasks")
+            .build()
 
     private fun updateReferenceManifest(): BuildResult =
         GradleRunner.create()
