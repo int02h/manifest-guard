@@ -8,6 +8,7 @@ import com.android.build.gradle.AppPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+@Suppress("unused")
 @ExperimentalStdlibApi
 class ManifestGuardPlugin : Plugin<Project> {
 
@@ -16,12 +17,16 @@ class ManifestGuardPlugin : Plugin<Project> {
             project.extensions.create("manifestGuard", ManifestGuardExtension::class.java)
 
         project.plugins.withType(AppPlugin::class.java) {
-
             val androidComponents =
                 project.extensions.getByType(ApplicationAndroidComponentsExtension::class.java)
 
-            androidComponents.onVariants { variant ->
-                handleApplicationVariant(project, variant, extension)
+            androidComponents.onVariants { appVariant ->
+                val guardConfig = extension.getVariantConfiguration(appVariant.name)
+                if (guardConfig.enabled.get()) {
+                    handleApplicationVariant(project, appVariant, guardConfig)
+                } else {
+                    project.logger.lifecycle("Skip guarding build variant: ${appVariant.name}")
+                }
             }
         }
     }
@@ -29,7 +34,7 @@ class ManifestGuardPlugin : Plugin<Project> {
     private fun handleApplicationVariant(
         project: Project,
         variant: ApplicationVariant,
-        extension: ManifestGuardExtension
+        extension: BuildVariantManifestGuardConfiguration
     ) {
         registerCompareTask(project, variant, extension)
         registerUpdateReferenceTask(project, variant, extension)
@@ -38,16 +43,18 @@ class ManifestGuardPlugin : Plugin<Project> {
     private fun registerCompareTask(
         project: Project,
         variant: ApplicationVariant,
-        extension: ManifestGuardExtension,
+        extension: BuildVariantManifestGuardConfiguration,
     ) {
         val taskProvider = project.tasks.register(
             "compare${variant.capitalizedName()}MergedManifest",
             CompareMergedManifestTask::class.java,
         ) { task ->
+            task.group = "Manifest guard"
+            task.description = "Compare ${variant.capitalizedName()} manifest with reference manifest"
             task.mergedManifestFile.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
             task.referenceManifestFile.set(extension.referenceFile)
             task.htmlDiffFile.set(extension.htmlDiffFile)
-            task.ignoreConfig.set(extension.ignore)
+            task.ignoreConfig.set(extension.ignoreConfig)
         }
 
         if (extension.compareOnAssemble.get()) {
@@ -62,12 +69,14 @@ class ManifestGuardPlugin : Plugin<Project> {
     private fun registerUpdateReferenceTask(
         project: Project,
         variant: ApplicationVariant,
-        extension: ManifestGuardExtension,
+        extension: BuildVariantManifestGuardConfiguration,
     ) {
         project.tasks.register(
             "update${variant.capitalizedName()}ReferenceManifest",
             UpdateReferenceManifestTask::class.java,
         ) { task ->
+            task.group = "Manifest guard"
+            task.description = "Update manifest guard reference with ${variant.capitalizedName()}"
             task.mergedManifestFile.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
             task.referenceManifestFile.set(extension.referenceFile)
         }

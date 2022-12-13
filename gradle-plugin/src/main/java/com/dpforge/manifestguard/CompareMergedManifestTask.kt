@@ -1,5 +1,6 @@
 package com.dpforge.manifestguard
 
+import com.dpforge.manifestguard.ManifestGuardConfiguration.IgnoreConfig
 import com.dpforge.manifestguard.filter.AppVersionDiffFilter
 import com.dpforge.manifestguard.manifest.ManifestDiffBuilder
 import com.dpforge.manifestguard.manifest.ManifestDiffEntryFilter
@@ -11,6 +12,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
@@ -28,8 +30,8 @@ abstract class CompareMergedManifestTask : DefaultTask() {
     @get:OutputFile
     abstract val htmlDiffFile: RegularFileProperty
 
-    @get:Input
-    abstract val ignoreConfig: Property<ManifestGuardExtension.IgnoreConfig>
+    @get:Nested
+    abstract val ignoreConfig: Property<IgnoreConfig>
 
     @TaskAction
     fun execute() {
@@ -39,15 +41,14 @@ abstract class CompareMergedManifestTask : DefaultTask() {
         val referenceManifestFile = referenceManifestFile.get().asFile
         val mergedManifestFile = mergedManifestFile.get().asFile
 
-        logger.debug("Merged AndroidManifest.xml: $mergedManifestFile")
-        logger.debug("Reference AndroidManifest.xml: $referenceManifestFile")
+        logger.info("Merged AndroidManifest.xml: $mergedManifestFile")
+        logger.info("Reference AndroidManifest.xml: $referenceManifestFile")
 
         if (referenceManifestFile.exists()) {
             compareManifests(
                 referenceManifestFile = referenceManifestFile,
                 mergedManifestFile = mergedManifestFile,
                 htmlDiffFile = htmlDiffFile,
-                ignoreConfig = ignoreConfig.get(),
             )
         } else {
             logger.info("Reference AndroidManifest.xml does not exist. Just creating it.")
@@ -59,14 +60,13 @@ abstract class CompareMergedManifestTask : DefaultTask() {
         referenceManifestFile: File,
         mergedManifestFile: File,
         htmlDiffFile: File,
-        ignoreConfig: ManifestGuardExtension.IgnoreConfig,
     ) {
         val diff = ManifestDiffBuilder(
-            filters = buildDiffFilters(ignoreConfig)
+            filters = buildDiffFilters()
         ).build(referenceManifestFile, mergedManifestFile)
 
         if (diff.isEmpty()) {
-            logger.info("AndroidManifests are the same")
+            logger.lifecycle("AndroidManifests are the same")
         } else {
             logger.error("AndroidManifests are different")
             HtmlDiffWriter(htmlDiffFile).write(diff)
@@ -76,9 +76,10 @@ abstract class CompareMergedManifestTask : DefaultTask() {
         }
     }
 
-    private fun buildDiffFilters(ignoreConfig: ManifestGuardExtension.IgnoreConfig): List<ManifestDiffEntryFilter> {
+    private fun buildDiffFilters(): List<ManifestDiffEntryFilter> {
         val filters = mutableListOf<ManifestDiffEntryFilter>()
-        if (ignoreConfig.ignoreAppVersionChanges) {
+        val ignoreConfig = ignoreConfig.get()
+        if (ignoreConfig.ignoreAppVersionChanges.get()) {
             filters += AppVersionDiffFilter()
         }
         return filters
