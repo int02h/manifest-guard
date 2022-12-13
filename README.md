@@ -35,18 +35,30 @@ apply plugin: "com.dpforge.manifestguard"
 Basically that's it. But you can configure the plugin depending on your needs. Take a look at the next section.
 
 ### Configure the plugin
-Plugin has default settings but you can change them in the following way:
+Plugin has default settings. It means you can just apply plugin and it will work. In case you want more precise
+configuration you can do it in the following way:
+
 ```groovy
 manifestGuard {
-    compareOnAssemble = false // default value is true
-    referenceFile = new File(projectDir, "manifest/original.xml")
-    htmlDiffFile = new File(projectDir, "manifest-diff.html")
-    ignore {
-        ignoreAppVersionChanges true // default value is false
+    defaultConfig {
+        enabled = true // by default it's also true, here it is just for sake of documentation
+        compareOnAssemble = false // default value is true
+        referenceFile = new File(projectDir, "manifest/original.xml")
+        htmlDiffFile = new File(projectDir, "manifest-diff.html")
+        ignore {
+            ignoreAppVersionChanges true // default value is false
+        }
+    }
+    guardVariant("debug") {
+        compareOnAssemble = true
     }
 }
 ```
 
+First of all there is a `defaultConfig` section which sets up the default configuration being used for all build
+variants. It has the following parameters:
+
+* `enabled` - whether plugin is enabled or not. When plugin is disable it does nothing.
 * `compareOnAssemble` - whether manifest comparison is done automatically on every project assembly. 
   Default value is `true` while `false` means you have to invoke task `compare${VARIANT_NAME}MergedManifest` manually. 
   For example `compareDebugMergedManifest`. 
@@ -59,6 +71,10 @@ manifestGuard {
       attributes of `manifest` tag. Value of `true` means that if app version has changed then manifest comparison will 
       be successful and no report would be generated. Default value is `false`.
       
+If you would like to make a different configuration for some particular build variant then `guardVariant()` can help
+you here. You don't need to provide all options there since any missing option will inherit its value from default 
+configuration. In the example from above the option `compareOnAssemble` is set to `true` for `debug` build variant.
+
 ### Update reference manifest
 
 If there is no reference `AndroidManifest.xml` file then it will be created automatically on next comparison. When you
@@ -66,8 +82,44 @@ introduce changes into manifest intentionally and want to update the reference t
 `update${VARIANT_NAME}ReferenceManifest`. For example `updateDebugReferenceManifest`. It will update reference manifest
 and the next comparison will be successful.
 
+## Migration
+
+### From 0.x.x to 1.x.x
+
+Release 1.0.0 introduces new way of configuring the plugin. Now the plugin has a default configuration placed inside
+`defaultConfig` section but it also allows you to configure the plugin on per-variant base using `guardVariant()`.
+
+So the easiest way to migrate is to change the following configuration inside `build.gradle` file:
+```groovy
+manifestGuard {
+    compareOnAssemble = false
+    referenceFile = new File(projectDir, "manifest/original.xml")
+    htmlDiffFile = new File(projectDir, "manifest-diff.html")
+    ignore {
+        ignoreAppVersionChanges true
+    }
+}
+```
+to
+```groovy
+manifestGuard {
+    defaultConfig {
+        compareOnAssemble = false
+        referenceFile = new File(projectDir, "manifest/original.xml")
+        htmlDiffFile = new File(projectDir, "manifest-diff.html")
+        ignore {
+            ignoreAppVersionChanges = true
+        }
+    }
+}
+```
+
+Please notice that properties inside `ignore` block now require `=`.
+
 ## Credits
 Thanks to [Dmitriy Voronin](https://github.com/dsvoronin) for the project idea and the contribution.
+
+Thanks to [Sergey Boishtyan](https://github.com/sboishtyan) for introducing per-build-variant configuration.
 
 ## License
 
