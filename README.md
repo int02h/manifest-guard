@@ -46,7 +46,7 @@ manifestGuard {
         referenceFile = new File(projectDir, "manifest/original.xml")
         htmlDiffFile = new File(projectDir, "manifest-diff.html")
         ignore {
-            ignoreAppVersionChanges true // default value is false
+            ignoreAppVersionChanges = true // default value is false
         }
     }
     guardVariant("debug") {
@@ -96,7 +96,7 @@ manifestGuard {
     referenceFile = new File(projectDir, "manifest/original.xml")
     htmlDiffFile = new File(projectDir, "manifest-diff.html")
     ignore {
-        ignoreAppVersionChanges true
+        ignoreAppVersionChanges = true
     }
 }
 ```
