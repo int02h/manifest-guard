@@ -85,6 +85,7 @@ class TestProjectGenerator(
                 }
                 
                 android {
+                    namespace "com.dpforge.testapp"
                     compileSdk 31
                 
                     defaultConfig {
