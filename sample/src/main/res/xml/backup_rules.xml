@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!--
+    Backup rules for devices running Android 11 (API 30) and lower.
+    See https://developer.android.com/guide/topics/data/autobackup for details.
+    -->
+    <include domain="sharedpref" path="."/>
+    <exclude domain="sharedpref" path="device_specific_prefs.xml"/>
+</full-backup-content>

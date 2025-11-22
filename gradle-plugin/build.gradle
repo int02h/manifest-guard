@@ -9,8 +9,8 @@ group 'com.dpforge'
 version '1.0.0'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 gradlePlugin {
@@ -41,8 +41,8 @@ pluginBundle {
 }
 
 dependencies {
-    implementation 'com.android.tools.build:gradle:7.0.4'
-    implementation 'org.apache.commons:commons-text:1.9'
+    implementation 'com.android.tools.build:gradle:8.13.0'
+    implementation 'org.apache.commons:commons-text:1.14.0'
 
     testImplementation(
             gradleTestKit(),
