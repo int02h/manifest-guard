@@ -49,6 +49,36 @@ internal class ManifestDiffBuilderTest {
     }
 
     @Test
+    fun `children - no changes - different children order with the same names`() {
+        manifestFile1.writeText(
+            """
+                <root>
+                    <child>
+                        <tag attr="aaa" />
+                    </child>
+                    <child>
+                        <tag attr="bbb" />
+                    </child>
+                </root>            
+            """.trimIndent()
+        )
+        manifestFile2.writeText(
+            """
+                <root>
+                    <child>
+                        <tag attr="bbb" />
+                    </child>
+                    <child>
+                        <tag attr="aaa" />
+                    </child>
+                </root>            
+            """.trimIndent()
+        )
+        val diff = buildDiff()
+        assertTrue(diff.isEmpty(), "size = ${diff.size}")
+    }
+
+    @Test
     fun `children - changes - different children order`() {
         manifestFile1.writeText(
             """

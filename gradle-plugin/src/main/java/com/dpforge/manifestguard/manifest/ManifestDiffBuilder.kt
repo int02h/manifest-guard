@@ -143,6 +143,10 @@ internal class ManifestDiffBuilder(
 
     private fun createChildUniqueKey(item: ManifestItem): String = buildString {
         append(item.name)
+        item.children.map { createChildUniqueKey(it) }.sorted().forEach { key ->
+            append(";")
+            append(key)
+        }
         item.attributes.toSortedMap().forEach { (key, value) ->
             append(";")
             append(key)
