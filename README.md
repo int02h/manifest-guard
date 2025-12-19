@@ -14,7 +14,7 @@ ManifestGuard Gradle plugin is aimed to solve this issue for you. For every buil
 ManifestGuard is applicable only to Android application modules because for libraries it does not make any sense. The setup is easy, just add the plugin to `plugins` blocks in your application's `build.gradle`:
 ```groovy
 plugins {
-    id 'com.dpforge.manifestguard' version 'x.x.x'
+    id 'com.dpforge.manifestguard' version '1.2.0'
 }
 ```
 or legacy plugin application:
@@ -26,7 +26,7 @@ buildscript {
         }
     
     dependencies {
-        classpath "com.dpforge:manifestguard:x.x.x"
+        classpath "com.dpforge:manifestguard:1.2.0"
     }
 }
 
@@ -121,8 +121,10 @@ Thanks to [Dmitriy Voronin](https://github.com/dsvoronin) for the project idea a
 
 Thanks to [Sergey Boishtyan](https://github.com/sboishtyan) for introducing per-build-variant configuration.
 
+Thanks to [Alexander Suslov](https://github.com/subprogram) for keeping dependencies up-to-update and bux fixing
+
 ## License
 
-Copyright (c) 2022 Daniil Popov
+Copyright (c) 2025 Daniil Popov
 
 Licensed under the [MIT](LICENSE) License.
