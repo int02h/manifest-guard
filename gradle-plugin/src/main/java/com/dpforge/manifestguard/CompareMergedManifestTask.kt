@@ -1,6 +1,5 @@
 package com.dpforge.manifestguard
 
-import com.dpforge.manifestguard.ManifestGuardConfiguration.IgnoreConfig
 import com.dpforge.manifestguard.filter.AppVersionDiffFilter
 import com.dpforge.manifestguard.manifest.ManifestDiffBuilder
 import com.dpforge.manifestguard.manifest.ManifestDiffEntryFilter
@@ -9,7 +8,6 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Nested
@@ -31,7 +29,7 @@ abstract class CompareMergedManifestTask : DefaultTask() {
     abstract val htmlDiffFile: RegularFileProperty
 
     @get:Nested
-    abstract val ignoreConfig: Property<IgnoreConfig>
+    abstract val ignoreConfig: Property<IgnoreParams>
 
     @TaskAction
     fun execute() {
