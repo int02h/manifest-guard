@@ -14,7 +14,7 @@ ManifestGuard Gradle plugin is aimed to solve this issue for you. For every buil
 ManifestGuard is applicable only to Android application modules because for libraries it does not make any sense. The setup is easy, just add the plugin to `plugins` blocks in your application's `build.gradle`:
 ```groovy
 plugins {
-    id 'com.dpforge.manifestguard' version '1.2.0'
+    id 'com.dpforge.manifestguard' version '2.0.0'
 }
 ```
 or legacy plugin application:
@@ -26,7 +26,7 @@ buildscript {
         }
     
     dependencies {
-        classpath "com.dpforge:manifestguard:1.2.0"
+        classpath "com.dpforge:manifestguard:2.0.0"
     }
 }
 
@@ -39,24 +39,26 @@ Plugin has default settings. It means you can just apply plugin and it will work
 configuration you can do it in the following way:
 
 ```groovy
-manifestGuard {
-    defaultConfig {
-        enabled = true // by default it's also true, here it is just for sake of documentation
-        compareOnAssemble = false // default value is true
-        referenceFile = new File(projectDir, "manifest/original.xml")
-        htmlDiffFile = new File(projectDir, "manifest-diff.html")
-        ignore {
-            ignoreAppVersionChanges = true // default value is false
+android {
+    buildTypes {
+        release {
+            manifestGuard {
+                defaultConfig {
+                    enabled = true // by default it's also true, here it is just for sake of documentation
+                    compareOnAssemble = false // default value is true
+                    referenceFile = new File(projectDir, "manifest/original.xml")
+                    htmlDiffFile = new File(projectDir, "manifest-diff.html")
+                    ignore {
+                        ignoreAppVersionChanges = true // default value is false
+                    }
+                }
+            }
         }
-    }
-    guardVariant("debug") {
-        compareOnAssemble = true
     }
 }
 ```
 
-First of all there is a `defaultConfig` section which sets up the default configuration being used for all build
-variants. It has the following parameters:
+Plugin extension has the following parameters:
 
 * `enabled` - whether plugin is enabled or not. When plugin is disable it does nothing.
 * `compareOnAssemble` - whether manifest comparison is done automatically on every project assembly. 
@@ -71,9 +73,46 @@ variants. It has the following parameters:
       attributes of `manifest` tag. Value of `true` means that if app version has changed then manifest comparison will 
       be successful and no report would be generated. Default value is `false`.
       
-If you would like to make a different configuration for some particular build variant then `guardVariant()` can help
-you here. You don't need to provide all options there since any missing option will inherit its value from default 
-configuration. In the example from above the option `compareOnAssemble` is set to `true` for `debug` build variant.
+### Resolution Strategy
+ManifestGuard uses a __Cascade Resolution Strategy__ to determine the final settings for any specific build variant (e.g., `demoDebug`). 
+It merges configurations from multiple sources, prioritizing specific flavors over generic build types.
+_If multiple flavor dimensions exist, they are prioritized by their dimension order._
+
+|  Resolution Priority Hierarchy   |
+|:--------------------------------:|
+| 1. Product Flavor (e.g., `demo`) |
+|  *↓ (fallback if undefined) ↓*   |
+| 2. Build Type (e.g., `release`)  |
+|  *↓ (fallback if undefined) ↓*   |
+|   3. Default Value (Hardcoded)   |
+
+#### Example Scenario
+
+If you have a `demo` flavor and a `debug` build type:
+
+```groovy
+android {
+    productFlavors {
+        create("demo") {
+            // Priority 1: Explicitly disable for demo builds
+            manifestGuard { 
+                enabled = false 
+            }
+        }
+    }
+    
+    buildTypes {
+        debug {
+            // Priority 2: Enabled for debug builds
+            manifestGuard { 
+                enabled = true
+            }
+        }
+    }
+}
+```
+
+__Result:__ For the variant `demoDebug`, the plugin will be __disabled__ (because Flavor priority > Build Type priority).
 
 ### Update reference manifest
 
@@ -83,6 +122,46 @@ introduce changes into manifest intentionally and want to update the reference t
 and the next comparison will be successful.
 
 ## Migration
+
+### From 1.x.x to 2.x.x
+
+Version 2.0.0 introduces a major architectural change. 
+The top-level `manifestGuard {}` block and `guardVariant` method have been removed in favor of native Android DSL integration.
+
+__Old Code(1.x):__
+```groovy
+// build.gradle
+manifestGuard {
+    defaultConfig {
+        compareOnAssemble = false
+    }
+    guardVariant("debug") {
+        enabled = true
+    }
+}
+```
+
+__New Code (2.x):__ Move the configuration into your android block.
+
+```groovy
+// build.gradle
+android {
+    buildTypes {
+        debug {
+            manifestGuard {
+                enabled = true
+                compareOnAssemble = false
+            }
+        }
+        
+        release {
+            manifestGuard {
+                compareOnAssemble = false
+            }
+        }
+    }
+}
+```
 
 ### From 0.x.x to 1.x.x
 
